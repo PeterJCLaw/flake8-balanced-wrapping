@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import ast
 import sys
-import tokenize
 import collections
 from typing import Iterator
 
@@ -73,10 +72,7 @@ class Visitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def flake8_balanced_wrapping(
-    tree: ast.AST,
-    file_tokens: list[tokenize.TokenInfo],
-) -> Iterator[tuple[int, int, str, None]]:
+def flake8_balanced_wrapping(tree: ast.AST) -> Iterator[tuple[int, int, str, None]]:
     visitor = Visitor()
     visitor.visit(tree)
 
