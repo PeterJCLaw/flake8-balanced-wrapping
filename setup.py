@@ -41,8 +41,4 @@ setup(
             'BWR001 = flake8_balanced_wrapping:flake8_balanced_wrapping',
         ],
     },
-
-    install_requires=(
-        'asttokens',
-    ),
 )
