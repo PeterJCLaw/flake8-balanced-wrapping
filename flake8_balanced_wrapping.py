@@ -23,7 +23,15 @@ class Visitor(ast.NodeVisitor):
                 by_line_no[x.lineno].append(x)
         if include_node_end and sys.version_info >= (3, 8):
             assert node.end_lineno is not None
-            by_line_no[node.end_lineno].append(node)
+            assert node.end_col_offset is not None
+
+            # Allow hugging
+            if not any(
+                x.end_lineno == node.end_lineno and
+                x.end_col_offset == node.end_col_offset - 1
+                for x in nodes
+            ):
+                by_line_no[node.end_lineno].append(node)
 
         counts = {x: len(y) for x, y in by_line_no.items()}
         (line_num, count), = collections.Counter(counts).most_common(1)

@@ -45,6 +45,26 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             call('on', one, 'line')
         ''')
 
+    def test_one_line_nested_call(self) -> None:
+        self.assertOk('''
+            call(nested('on', one, 'line'))
+        ''')
+
+    def test_wrapped_nested_call(self) -> None:
+        self.assertOk('''
+            call(
+                nested('on', one, 'line'),
+            )
+        ''')
+
+    def test_hugging_wrapped_nested_call(self) -> None:
+        self.assertOk('''
+            call(nested(
+                'inner',
+                wrapped,
+            ))
+        ''')
+
     def test_one_line_function_def(self) -> None:
         self.assertOk('''
             def func(on, one, *, line):
