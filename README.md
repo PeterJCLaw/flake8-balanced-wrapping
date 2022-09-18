@@ -1,5 +1,7 @@
 # flake8-balanced-wrapping
 
+[![CircleCI](https://circleci.com/gh/PeterJCLaw/flake8-balanced-wrapping/tree/master.svg?style=svg)](https://circleci.com/gh/PeterJCLaw/flake8-balanced-wrapping/tree/master)
+
 A flake8 plugin that helps you wrap code with visual balance.
 
 The aim of this tool is to build up developer-assistance tooling for python
