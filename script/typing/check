@@ -1,0 +1,5 @@
+#!/bin/bash
+if [ -z "$MYPY" ]; then
+    MYPY=mypy
+fi
+exec "$MYPY" flake8_balanced_wrapping.py setup.py "$@"
