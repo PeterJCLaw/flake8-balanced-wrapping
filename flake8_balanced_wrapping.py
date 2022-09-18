@@ -30,6 +30,7 @@ class Visitor(ast.NodeVisitor):
                 x.end_lineno == node.end_lineno and
                 x.end_col_offset == node.end_col_offset - 1
                 for x in nodes
+                if hasattr(x, 'end_lineno')
             ):
                 by_line_no[node.end_lineno].append(node)
 
