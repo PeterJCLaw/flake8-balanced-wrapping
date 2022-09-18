@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import sys
 import tokenize
 import collections
 from typing import Iterator, NamedTuple
@@ -29,7 +30,7 @@ class Visitor(ast.NodeVisitor):
         for x in nodes:
             if hasattr(x, 'lineno'):
                 by_line_no[x.lineno].append(x)
-        if include_node_end:
+        if include_node_end and sys.version_info >= (3, 8):
             assert node.end_lineno is not None
             by_line_no[node.end_lineno].append(node)
 
