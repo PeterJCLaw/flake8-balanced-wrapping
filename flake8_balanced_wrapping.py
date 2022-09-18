@@ -4,15 +4,7 @@ import ast
 import sys
 import tokenize
 import collections
-from typing import Iterator, NamedTuple
-
-
-class CheckSpec(NamedTuple):
-    include_own_start: bool
-    include_own_end: bool
-
-
-CHECK_EVERYTHING = CheckSpec(True, True)
+from typing import Iterator
 
 
 class Visitor(ast.NodeVisitor):
