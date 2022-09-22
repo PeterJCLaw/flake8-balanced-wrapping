@@ -1,5 +1,7 @@
-import textwrap, ast
+import ast
+import textwrap
 import unittest
+
 import flake8_balanced_wrapping
 
 
@@ -14,7 +16,7 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
         # Normalise from triple quoted strings
         content = textwrap.dedent(content[1:])
 
-        tree= ast.parse(content)
+        tree = ast.parse(content)
 
         errors = [
             (x, y)
