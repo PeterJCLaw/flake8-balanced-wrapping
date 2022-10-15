@@ -47,6 +47,7 @@ class Visitor(ast.NodeVisitor):
             [*ast.iter_child_nodes(node), node],
             include_node_end=True,
         )
+        self.generic_visit(node)
 
     visit_List = visit_Tuple = _check_all
 
