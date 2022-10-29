@@ -41,4 +41,11 @@ setup(
             'BWR001 = flake8_balanced_wrapping:flake8_balanced_wrapping',
         ],
     },
+
+    install_requires=(
+        'asttokens >=2.1.0, <3',
+        # Don't really want to depend on tuck long-term, but for now it's an
+        # easy thing to use.
+        'tuck >=0.1.4, <0.2',
+    ),
 )
