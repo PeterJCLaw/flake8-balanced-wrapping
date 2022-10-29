@@ -99,6 +99,8 @@ class Visitor(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         # TODO: also check the positional/args/kwargs markers?
+        # TODO: returns will have a different column if wrapped
+        # TODO: check that argument defatuls are on the same line as their arguments?
         nodes: list[ast.AST | None] = [
             *node.args.posonlyargs,
             *node.args.args,
