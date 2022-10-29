@@ -32,6 +32,19 @@ def get_start_position(node: ast.AST) -> Position:
     return Position.from_node_start(node)
 
 
+def get_end_position(node: ast.AST) -> Position:
+    return Position(*_last_token(node).end)
+
+
+def get_end_positions(nodes: list[ast.AST]) -> list[Position]:
+    positions = []
+    for node in nodes:
+        end = get_end_position(node)
+        if end is not None:
+            positions.append(end)
+    return positions
+
+
 class Visitor(ast.NodeVisitor):
     def __init__(self, asttokens: ASTTokens) -> None:
         super().__init__()
@@ -50,18 +63,15 @@ class Visitor(ast.NodeVisitor):
         for x in nodes:
             pos = get_start_position(x)
             by_line_no[pos.line].append(x)
-        if include_node_end and sys.version_info >= (3, 8):
-            assert node.end_lineno is not None
-            assert node.end_col_offset is not None
+        if include_node_end:
+            end_line, end_col = _last_token(node).end
+            just_before_end_pos = Position(end_line, end_col - 1)
+            end_positions = get_end_positions(nodes)
 
-            # Allow hugging
-            if not any(
-                x.end_lineno == node.end_lineno and
-                x.end_col_offset == node.end_col_offset - 1
-                for x in nodes
-                if hasattr(x, 'end_lineno')
-            ):
-                by_line_no[node.end_lineno].append(node)
+            # Allow hugging, but otherwise add the containing node via its end
+            # line too.
+            if just_before_end_pos not in end_positions:
+                by_line_no[end_line].append(node)
 
         counts = {x: len(y) for x, y in by_line_no.items()}
         (line_num, count), = collections.Counter(counts).most_common(1)
