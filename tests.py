@@ -133,6 +133,24 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             (2, 4),
         )
 
+    def test_one_line_function_def_with_defaults(self) -> None:
+        self.assertOk('''
+            def func(on, one='default', *, line, kwarg='default'):
+                pass
+        ''')
+
+    def test_multi_line_function_def_with_defaults(self) -> None:
+        self.assertOk('''
+            def func(
+                on,
+                many='default',
+                *,
+                lines,
+                kwarg='default',
+            ):
+                pass
+        ''')
+
     def test_pep8_style_call(self) -> None:
         self.assertError(
             '''

@@ -98,17 +98,22 @@ class Visitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
-        nodes = list(ast.iter_child_nodes(node.args))
-
-        if node.returns:
-            nodes.append(node.returns)
+        # TODO: also check the positional/args/kwargs markers?
+        nodes: list[ast.AST | None] = [
+            *node.args.posonlyargs,
+            *node.args.args,
+            node.args.vararg,
+            *node.args.kwonlyargs,
+            node.args.kwarg,
+            node.returns,
+        ]
 
         open_paren = self.asttokens.find_token(_first_token(node), token.OP, '(')
 
         self._check_nodes(
             node,
             Position(*open_paren.end),
-            nodes,
+            [x for x in nodes if x],
             include_node_end=False,
         )
         self.generic_visit(node)
