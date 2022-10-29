@@ -102,13 +102,15 @@ class Visitor(ast.NodeVisitor):
         # TODO: returns will have a different column if wrapped
         # TODO: check that argument defatuls are on the same line as their arguments?
         nodes: list[ast.AST | None] = [
-            *node.args.posonlyargs,
             *node.args.args,
             node.args.vararg,
             *node.args.kwonlyargs,
             node.args.kwarg,
             node.returns,
         ]
+
+        if sys.version_info >= (3, 8):
+            nodes = [*node.args.posonlyargs, *nodes]
 
         open_paren = self.asttokens.find_token(_first_token(node), token.OP, '(')
 
