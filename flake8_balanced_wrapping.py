@@ -83,17 +83,6 @@ class Visitor(ast.NodeVisitor):
             assert positions
             self.bad_nodes[node] = positions
 
-    def _check_all(self, node: ast.AST) -> None:
-        self._check_nodes(
-            node,
-            Position.from_node_start(node),
-            [x for x in ast.iter_child_nodes(node) if hasattr(x, 'lineno')],
-            include_node_end=True,
-        )
-        self.generic_visit(node)
-
-    visit_List = visit_Tuple = _check_all
-
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         nodes = [*node.bases, *node.keywords]
 
@@ -159,6 +148,24 @@ class Visitor(ast.NodeVisitor):
         # Position information in f-strings is a mess, so ASTTokens doesn't have
         # useful information, so we don't try either.
         return
+
+    def visit_List(self, node: ast.List) -> None:
+        self._check_nodes(
+            node,
+            Position.from_node_start(node),
+            node.elts,
+            include_node_end=True,
+        )
+        self.generic_visit(node)
+
+    def visit_Tuple(self, node: ast.Tuple) -> None:
+        self._check_nodes(
+            node,
+            Position.from_node_start(node),
+            node.elts,
+            include_node_end=True,
+        )
+        self.generic_visit(node)
 
 
 def check(asttokens: ASTTokens) -> list[Error]:
