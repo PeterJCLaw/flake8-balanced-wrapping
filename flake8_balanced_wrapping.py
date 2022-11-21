@@ -6,7 +6,7 @@ import token
 import tokenize
 import collections
 import dataclasses
-from typing import cast, Iterator
+from typing import cast, Iterable, Iterator, Collection
 
 from tuck.ast import Position, _last_token, _first_token
 from asttokens import ASTTokens
@@ -36,7 +36,7 @@ def get_end_position(node: ast.AST) -> Position:
     return Position(*_last_token(node).end)
 
 
-def get_end_positions(nodes: list[ast.AST]) -> list[Position]:
+def get_end_positions(nodes: Iterable[ast.AST]) -> list[Position]:
     positions = []
     for node in nodes:
         end = get_end_position(node)
@@ -55,7 +55,7 @@ class Visitor(ast.NodeVisitor):
         self,
         node: ast.AST,
         reference: Position,
-        nodes: list[ast.AST],
+        nodes: Collection[ast.AST],
         include_node_end: bool,
     ) -> None:
         by_line_no = collections.defaultdict(list)
