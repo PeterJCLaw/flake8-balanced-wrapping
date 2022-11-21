@@ -97,7 +97,8 @@ class Visitor(ast.NodeVisitor):
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         nodes = [*node.bases, *node.keywords]
 
-        open_paren = self.asttokens.find_token(_first_token(node), token.OP, '(')
+        class_tok = self.asttokens.find_token(_first_token(node), token.NAME, 'class')
+        open_paren = self.asttokens.find_token(class_tok, token.OP, '(')
 
         self._check_nodes(
             node,
@@ -122,7 +123,8 @@ class Visitor(ast.NodeVisitor):
         if sys.version_info >= (3, 8):
             nodes = [*node.args.posonlyargs, *nodes]
 
-        open_paren = self.asttokens.find_token(_first_token(node), token.OP, '(')
+        def_tok = self.asttokens.find_token(_first_token(node), token.NAME, 'def')
+        open_paren = self.asttokens.find_token(def_tok, token.OP, '(')
 
         self._check_nodes(
             node,

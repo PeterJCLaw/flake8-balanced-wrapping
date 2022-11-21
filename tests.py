@@ -135,6 +135,27 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             (2, 4),
         )
 
+    def test_decorated_function_def(self) -> None:
+        self.assertOk('''
+            @foo
+            def func(on, one, *, line):
+                pass
+        ''')
+
+    def test_decorated_parens_function_def(self) -> None:
+        self.assertOk('''
+            @foo()
+            def func(on, one, *, line):
+                pass
+        ''')
+
+    def test_decorated_parens_class_def(self) -> None:
+        self.assertOk('''
+            @foo()
+            class A:
+                pass
+        ''')
+
     def test_one_line_function_def_with_defaults(self) -> None:
         self.assertOk('''
             def func(on, one='default', *, line, kwarg='default'):
