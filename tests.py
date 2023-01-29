@@ -239,7 +239,7 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             ast.Tuple,
         )
 
-    def test_wrapped_type_union_subscript(self) -> None:
+    def test_implicit_tuple_boundary_subscript(self) -> None:
         self.assertOk('''
             SomeAlias = Union[
                 str,
