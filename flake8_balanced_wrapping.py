@@ -62,9 +62,12 @@ class Visitor(ast.NodeVisitor):
         reference: Position,
         nodes: Collection[ast.AST],
         include_node_end: bool,
+        include_node_start: bool = True,
     ) -> dict[int, list[ast.AST]]:
         by_line_no = collections.defaultdict(list)
-        by_line_no[reference.line].append(node)
+
+        if include_node_start:
+            by_line_no[reference.line].append(node)
 
         for x in nodes:
             pos = get_start_position(x)
@@ -105,12 +108,14 @@ class Visitor(ast.NodeVisitor):
         reference: Position,
         nodes: Collection[ast.AST],
         include_node_end: bool,
+        include_node_start: bool = True,
     ) -> None:
         by_line_no = self._get_nodes_by_line_number(
             node,
             reference,
             nodes,
             include_node_end=include_node_end,
+            include_node_start=include_node_start,
         )
 
         summary = self._summarise_lines(by_line_no)
@@ -219,12 +224,19 @@ class Visitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Tuple(self, node: ast.Tuple) -> None:
+        is_parenthesised = (
+            _first_token(node).string == '(' and
+            _last_token(node).string == ')'
+        )
+
         self._check_nodes(
             node,
             Position.from_node_start(node),
             node.elts,
-            include_node_end=True,
+            include_node_end=is_parenthesised,
+            include_node_start=is_parenthesised,
         )
+
         self.generic_visit(node)
 
 
