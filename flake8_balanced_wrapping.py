@@ -6,7 +6,7 @@ import token
 import tokenize
 import collections
 import dataclasses
-from typing import cast, Iterable, Iterator, Collection
+from typing import cast, Iterable, Iterator, Collection, NamedTuple
 
 from tuck.ast import Position, _last_token, _first_token
 from asttokens import ASTTokens
@@ -26,6 +26,11 @@ class Error:
             f"BWR001 {type(self.node).__name__} is wrapped badly - {len(self.conflicts)} "
             "elements on the same line"
         )
+
+
+class PositionsSummary(NamedTuple):
+    is_single_line_or_column: bool
+    most_common_line_number: int
 
 
 def get_start_position(node: ast.AST) -> Position:
@@ -51,18 +56,20 @@ class Visitor(ast.NodeVisitor):
         self.asttokens = asttokens
         self.bad_nodes: dict[ast.AST, list[Position]] = {}
 
-    def _check_nodes(
+    def _get_nodes_by_line_number(
         self,
         node: ast.AST,
         reference: Position,
         nodes: Collection[ast.AST],
         include_node_end: bool,
-    ) -> None:
+    ) -> dict[int, list[ast.AST]]:
         by_line_no = collections.defaultdict(list)
         by_line_no[reference.line].append(node)
+
         for x in nodes:
             pos = get_start_position(x)
             by_line_no[pos.line].append(x)
+
         if include_node_end:
             end_line, end_col = _last_token(node).end
             just_before_end_pos = Position(end_line, end_col - 1)
@@ -73,15 +80,43 @@ class Visitor(ast.NodeVisitor):
             if just_before_end_pos not in end_positions:
                 by_line_no[end_line].append(node)
 
-        counts = {x: len(y) for x, y in by_line_no.items()}
-        (line_num, count), = collections.Counter(counts).most_common(1)
+        return by_line_no
 
-        # Everything should either be on one line or have its own line
-        if len(counts) != 1 and count != 1:
-            maybe_positions = [get_start_position(x) for x in by_line_no[line_num]]
-            positions = [x for x in maybe_positions if x is not None]
-            assert positions
-            self.bad_nodes[node] = positions
+    def _summarise_lines(
+        self,
+        nodes_by_line_number: dict[int, list[ast.AST]],
+    ) -> PositionsSummary:
+        counts = {x: len(y) for x, y in nodes_by_line_number.items()}
+        (line_num, max_nodes_per_line), = collections.Counter(counts).most_common(1)
+        return PositionsSummary(
+            len(counts) == 1 or max_nodes_per_line == 1,
+            line_num,
+        )
+
+    def _record_error(self, node: ast.AST, nodes: list[ast.AST]) -> None:
+        maybe_positions = [get_start_position(x) for x in nodes]
+        positions = [x for x in maybe_positions if x is not None]
+        assert positions
+        self.bad_nodes[node] = positions
+
+    def _check_nodes(
+        self,
+        node: ast.AST,
+        reference: Position,
+        nodes: Collection[ast.AST],
+        include_node_end: bool,
+    ) -> None:
+        by_line_no = self._get_nodes_by_line_number(
+            node,
+            reference,
+            nodes,
+            include_node_end=include_node_end,
+        )
+
+        summary = self._summarise_lines(by_line_no)
+
+        if not summary.is_single_line_or_column:
+            self._record_error(node, by_line_no[summary.most_common_line_number])
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         nodes = [*node.bases, *node.keywords]
