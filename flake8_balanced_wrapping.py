@@ -234,7 +234,7 @@ class Visitor(ast.NodeVisitor):
         if not summary.is_single_line_or_column:
             self._record_error(node, by_line_no[summary.most_common_line_number])
 
-        return self.generic_visit(node)
+        self.generic_visit(node)
 
     def visit_JoinedStr(self, node: ast.JoinedStr) -> None:
         # Position information in f-strings is a mess, so ASTTokens doesn't have
