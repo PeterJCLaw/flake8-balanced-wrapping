@@ -246,3 +246,58 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
                 bool,
             ]
         ''')
+
+    def test_if_expression_bad_wrap_body(self) -> None:
+        # TODO: make this error position better
+        self.assertError(
+            '''
+            x = ('foo'
+                if False
+                else 'bar'
+            )
+            ''',
+            (1, 5),
+            ast.IfExp,
+        )
+
+    def test_if_expression_bad_wrap_else(self) -> None:
+        # TODO: make this error position better
+        self.assertError(
+            '''
+            x = (
+                'foo'
+                if False else 'bar'
+            )
+            ''',
+            (3, 7),
+            ast.IfExp,
+        )
+
+    def test_if_expression_ok_one_line(self) -> None:
+        self.assertOk('''
+            x = 'foo' if False else 'bar'
+        ''')
+
+    def test_if_expression_ok_one_line_parens(self) -> None:
+        self.assertOk('''
+            x = ('foo' if False else 'bar')
+        ''')
+
+    def test_if_expression_ok_wrapped_parens(self) -> None:
+        self.assertOk('''
+            x = (
+                'foo'
+                if False
+                else 'bar'
+            )
+        ''')
+
+    def test_if_expression_ok_wrapped_implicit_boundary(self) -> None:
+        self.assertOk('''
+            x = {
+                'y':
+                    'foo'
+                    if False
+                    else 'bar'
+            }
+        ''')

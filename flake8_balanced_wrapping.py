@@ -10,6 +10,7 @@ from typing import cast, Iterable, Iterator, Collection, NamedTuple
 
 from tuck.ast import Position, _last_token, _first_token
 from asttokens import ASTTokens
+from tuck.wrappers import expression_is_parenthesised
 
 
 @dataclasses.dataclass(frozen=True)
@@ -208,6 +209,32 @@ class Visitor(ast.NodeVisitor):
                 self._record_error(node, by_line_no[summary.most_common_line_number])
 
         self.generic_visit(node)
+
+    def visit_IfExp(self, node: ast.IfExp) -> None:
+        start_pos = Position(*self.asttokens.prev_token(_first_token(node)).start)
+
+        by_line_no = self._get_nodes_by_line_number(
+            node,
+            start_pos,
+            # TODO: when we get to column validation we're going to need a way
+            # to represent syntax here not just AST nodes.
+            [node.body, node.test, node.orelse],
+            include_node_end=False,
+            include_node_start=False,
+        )
+
+        if expression_is_parenthesised(self.asttokens, node):
+            # Also account for the parens
+            end_pos = Position(*self.asttokens.next_token(_last_token(node)).end)
+            by_line_no[start_pos.line].append(node)
+            by_line_no[end_pos.line].append(node)
+
+        summary = self._summarise_lines(by_line_no)
+
+        if not summary.is_single_line_or_column:
+            self._record_error(node, by_line_no[summary.most_common_line_number])
+
+        return self.generic_visit(node)
 
     def visit_JoinedStr(self, node: ast.JoinedStr) -> None:
         # Position information in f-strings is a mess, so ASTTokens doesn't have
