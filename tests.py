@@ -185,6 +185,22 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             ast.Call,
         )
 
+    def test_dict_hugging_call(self) -> None:
+        self.assertOk('''
+            value = {'foo': Bar(
+                42,
+                'abcd',
+            )}
+        ''')
+
+    def test_call_hugging_dict_literal(self) -> None:
+        self.assertOk('''
+            value = SomeTypedDict({'foo': Bar(
+                42,
+                'abcd',
+            )})
+        ''')
+
     def test_misplaced_hugging_end_paren(self) -> None:
         # TODO: make this error position better
         self.assertError(

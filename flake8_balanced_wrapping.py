@@ -171,12 +171,37 @@ class Visitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Dict(self, node: ast.Dict) -> None:
-        self._check_nodes(
+        by_line_no = self._get_nodes_by_line_number(
             node,
             Position.from_node_start(node),
             [x for x in node.keys if x is not None],
             include_node_end=True,
         )
+
+        summary = self._summarise_lines(by_line_no)
+
+        # Everything should either be on one line or have its own line, unless
+        # we're hugging a single member in which case we require that that
+        # member occupy the intervening lines:
+        # ```
+        # value = {'foo': Bar(
+        #    42,
+        # )}
+        # ```
+        def _check_single_entry_hugging() -> bool:
+            if len(node.values) != 1:
+                return False
+
+            value, = node.values
+            return (
+                Position.from_node_start(value).line == Position.from_node_start(node).line and
+                Position.from_node_end(value).line == Position.from_node_end(node).line
+            )
+
+        if not summary.is_single_line_or_column:
+            if not _check_single_entry_hugging():
+                self._record_error(node, by_line_no[summary.most_common_line_number])
+
         self.generic_visit(node)
 
     def visit_JoinedStr(self, node: ast.JoinedStr) -> None:
