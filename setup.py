@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from setuptools import setup  # type: ignore[import]
+from setuptools import setup
 
 long_description = (Path(__file__).parent / 'README.md').read_text()
 
@@ -15,7 +15,7 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
 
-    py_modules=('flake8_balanced_wrapping',),
+    py_modules=['flake8_balanced_wrapping'],
 
     author="Peter Law",
     author_email="PeterJCLaw@gmail.com",
