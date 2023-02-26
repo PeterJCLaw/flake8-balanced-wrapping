@@ -4,9 +4,10 @@
 
 A flake8 plugin that helps you wrap code with visual balance.
 
-The aim of this tool is to build up developer-assistance tooling for python
-formatting. In general it will only format things when it needs to or when
-directly instructed to.
+The aim of this linter is to complement the use of developer-assistance python
+formatting tools, i.e: those where the developer remains in control of _when_ to
+format code a particular way, while still enforcing a consistent style of _how_
+the code is formatted.
 
 ## Style
 
