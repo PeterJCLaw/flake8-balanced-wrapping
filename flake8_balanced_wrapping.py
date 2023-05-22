@@ -316,6 +316,24 @@ class Visitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    def visit_Compare(self, node: ast.Compare) -> None:
+        by_line_no = self._get_nodes_by_line_number(
+            node,
+            Position.from_node_start(node.left),
+            [node.left, *node.comparators],
+            include_node_end=True,
+            include_node_start=True,
+        )
+
+        if len(by_line_no) != 1:
+            self._record_error(
+                node,
+                list(itertools.chain.from_iterable(by_line_no.values())),
+                error_type=OverWrappedError,
+            )
+
+        self.generic_visit(node)
+
 
 def check(asttokens: ASTTokens) -> list[Error]:
     visitor = Visitor(asttokens)

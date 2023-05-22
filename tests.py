@@ -324,3 +324,18 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             (3, 8),
             ast.comprehension,
         )
+
+    def test_compare_ok(self) -> None:
+        self.assertOk('''
+            ok = 'foo' in 'foobar'
+        ''')
+
+    def test_compare_bad_wrap(self) -> None:
+        self.assertError(
+            '''
+            ok = ('foo' in
+                'foobar')
+            ''',
+            (1, 6),
+            ast.Compare,
+        )
