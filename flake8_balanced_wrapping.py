@@ -135,7 +135,7 @@ class Visitor(ast.NodeVisitor):
         assert positions
         self.errors.append(error_type(node, positions))
 
-    def _check_nodes(
+    def _check_under_wrapping(
         self,
         node: ast.AST,
         reference: Position,
@@ -162,7 +162,7 @@ class Visitor(ast.NodeVisitor):
         class_tok = self.asttokens.find_token(_first_token(node), token.NAME, 'class')
         open_paren = self.asttokens.find_token(class_tok, token.OP, '(')
 
-        self._check_nodes(
+        self._check_under_wrapping(
             node,
             Position(*open_paren.end),
             nodes,
@@ -188,7 +188,7 @@ class Visitor(ast.NodeVisitor):
         def_tok = self.asttokens.find_token(_first_token(node), token.NAME, 'def')
         open_paren = self.asttokens.find_token(def_tok, token.OP, '(')
 
-        self._check_nodes(
+        self._check_under_wrapping(
             node,
             Position(*open_paren.end),
             [x for x in nodes if x],
@@ -200,7 +200,7 @@ class Visitor(ast.NodeVisitor):
 
     def visit_Call(self, node: ast.Call) -> None:
         open_paren = self.asttokens.find_token(_last_token(node.func), token.OP, '(')
-        self._check_nodes(
+        self._check_under_wrapping(
             node,
             Position(*open_paren.end),
             [*node.args, *node.keywords],
@@ -274,7 +274,7 @@ class Visitor(ast.NodeVisitor):
         return
 
     def visit_List(self, node: ast.List) -> None:
-        self._check_nodes(
+        self._check_under_wrapping(
             node,
             Position.from_node_start(node),
             node.elts,
@@ -288,7 +288,7 @@ class Visitor(ast.NodeVisitor):
             _last_token(node).string == ')'
         )
 
-        self._check_nodes(
+        self._check_under_wrapping(
             node,
             Position.from_node_start(node),
             node.elts,
@@ -298,40 +298,47 @@ class Visitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
-    def visit_comprehension(self, node: ast.comprehension) -> None:
+    def _check_over_wrapping(
+        self,
+        node: ast.AST,
+        reference: Position,
+        nodes: Collection[ast.AST],
+        include_node_end: bool,
+        include_node_start: bool = True,
+    ) -> None:
         by_line_no = self._get_nodes_by_line_number(
+            node,
+            reference,
+            nodes,
+            include_node_end=include_node_end,
+            include_node_start=include_node_start,
+        )
+
+        if len(by_line_no) != 1:
+            self._record_error(
+                node,
+                list(itertools.chain.from_iterable(by_line_no.values())),
+                error_type=OverWrappedError,
+            )
+
+    def visit_comprehension(self, node: ast.comprehension) -> None:
+        self._check_over_wrapping(
             node,
             Position.from_node_start(node),
             [node.target, node.iter],
             include_node_end=False,
             include_node_start=False,
         )
-
-        if len(by_line_no) != 1:
-            self._record_error(
-                node,
-                list(itertools.chain.from_iterable(by_line_no.values())),
-                error_type=OverWrappedError,
-            )
-
         self.generic_visit(node)
 
     def visit_Compare(self, node: ast.Compare) -> None:
-        by_line_no = self._get_nodes_by_line_number(
+        self._check_over_wrapping(
             node,
             Position.from_node_start(node.left),
             [node.left, *node.comparators],
             include_node_end=True,
             include_node_start=True,
         )
-
-        if len(by_line_no) != 1:
-            self._record_error(
-                node,
-                list(itertools.chain.from_iterable(by_line_no.values())),
-                error_type=OverWrappedError,
-            )
-
         self.generic_visit(node)
 
 
