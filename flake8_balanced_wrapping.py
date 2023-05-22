@@ -7,7 +7,8 @@ import tokenize
 import itertools
 import collections
 import dataclasses
-from typing import cast, Iterable, Iterator, Protocol, Collection, NamedTuple
+from typing import cast, Iterable, Iterator, Collection, NamedTuple
+from typing_extensions import Protocol
 
 from tuck.ast import Position, _last_token, _first_token
 from asttokens import ASTTokens
