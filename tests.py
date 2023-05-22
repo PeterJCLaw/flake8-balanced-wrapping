@@ -301,3 +301,26 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
                     else 'bar'
             }
         ''')
+
+    def test_comprehension_ok(self) -> None:
+        self.assertOk('''
+            ok = [
+                x
+                for x in valid_call(
+                    foo='Bar',
+                )
+            ]
+        ''')
+
+    def test_comprehension_bad_wrap(self) -> None:
+        self.assertError(
+            '''
+            bad = [
+                x
+                for x
+                in "SOMETHING"
+            ]
+            ''',
+            (3, 8),
+            ast.comprehension,
+        )

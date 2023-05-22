@@ -4,17 +4,27 @@ import ast
 import sys
 import token
 import tokenize
+import itertools
 import collections
 import dataclasses
-from typing import cast, Iterable, Iterator, Collection, NamedTuple
+from typing import cast, Iterable, Iterator, Protocol, Collection, NamedTuple
 
 from tuck.ast import Position, _last_token, _first_token
 from asttokens import ASTTokens
 from tuck.wrappers import expression_is_parenthesised
 
 
+class Error(Protocol):
+    @property
+    def position(self) -> Position:
+        ...
+
+    def __str__(self) -> str:
+        ...
+
+
 @dataclasses.dataclass(frozen=True)
-class Error:
+class UnderWrappedError:
     node: ast.AST
     conflicts: list[Position]
 
@@ -26,6 +36,23 @@ class Error:
         return (
             f"BWR001 {type(self.node).__name__} is wrapped badly - {len(self.conflicts)} "
             "elements on the same line"
+        )
+
+
+@dataclasses.dataclass(frozen=True)
+class OverWrappedError:
+    node: ast.AST
+    positions: list[Position]
+
+    @property
+    def position(self) -> Position:
+        return self.positions[0]
+
+    def __str__(self) -> str:
+        lines = set(x.line for x in self.positions)
+        return (
+            f"BWR002 {type(self.node).__name__} is wrapped unexpectedly over "
+            f"{len(lines)} lines"
         )
 
 
@@ -55,7 +82,7 @@ class Visitor(ast.NodeVisitor):
     def __init__(self, asttokens: ASTTokens) -> None:
         super().__init__()
         self.asttokens = asttokens
-        self.bad_nodes: dict[ast.AST, list[Position]] = {}
+        self.errors: list[Error] = []
 
     def _get_nodes_by_line_number(
         self,
@@ -97,11 +124,16 @@ class Visitor(ast.NodeVisitor):
             line_num,
         )
 
-    def _record_error(self, node: ast.AST, nodes: list[ast.AST]) -> None:
+    def _record_error(
+        self,
+        node: ast.AST,
+        nodes: list[ast.AST],
+        error_type: type[UnderWrappedError] | type[OverWrappedError] = UnderWrappedError,
+    ) -> None:
         maybe_positions = [get_start_position(x) for x in nodes]
         positions = [x for x in maybe_positions if x is not None]
         assert positions
-        self.bad_nodes[node] = positions
+        self.errors.append(error_type(node, positions))
 
     def _check_nodes(
         self,
@@ -266,16 +298,30 @@ class Visitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    def visit_comprehension(self, node: ast.comprehension) -> None:
+        by_line_no = self._get_nodes_by_line_number(
+            node,
+            Position.from_node_start(node),
+            [node.target, node.iter],
+            include_node_end=False,
+            include_node_start=False,
+        )
+
+        if len(by_line_no) != 1:
+            self._record_error(
+                node,
+                list(itertools.chain.from_iterable(by_line_no.values())),
+                error_type=OverWrappedError,
+            )
+
+        self.generic_visit(node)
+
 
 def check(asttokens: ASTTokens) -> list[Error]:
     visitor = Visitor(asttokens)
     assert asttokens.tree  # placate mypy
     visitor.visit(asttokens.tree)
-
-    return [
-        Error(node, conflicts)
-        for node, conflicts in visitor.bad_nodes.items()
-    ]
+    return visitor.errors
 
 
 def flake8_balanced_wrapping(
