@@ -31,7 +31,7 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             asttokens.ASTTokens(content, parse=True),
         )
         almost_errors = [
-            (type(x), type(x.node), (x.position.line, x.position.col))
+            (type(x), type(x.node), (x.position.line, x.position.col))  # type: ignore[attr-defined]
             for x in errors
         ]
 

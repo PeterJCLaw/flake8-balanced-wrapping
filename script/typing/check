@@ -2,4 +2,4 @@
 if [ -z "$MYPY" ]; then
     MYPY=mypy
 fi
-exec "$MYPY" flake8_balanced_wrapping.py setup.py "$@"
+exec "$MYPY" flake8_balanced_wrapping.py setup.py tests.py "$@"
