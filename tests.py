@@ -8,7 +8,12 @@ from unittest import mock
 import asttokens
 
 import flake8_balanced_wrapping
-from flake8_balanced_wrapping import Error, OverWrappedError, UnderWrappedError
+from flake8_balanced_wrapping import (
+    Error,
+    OverWrappedError,
+    UnderWrappedError,
+    CallUnderWrappedError,
+)
 
 
 class TestFlake8BalancedWrapping(unittest.TestCase):
@@ -121,12 +126,17 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
         ''')
 
     def test_call_kwargs_wrapped(self) -> None:
-        self.assertOk('''
+        self.assertError(
+            '''
             Item(42, 'slug',
                 display="Thing",
                 visible=False,
             )
-        ''')
+            ''',
+            expected_error_position=(1, 0),
+            expected_error_node=ast.Call,
+            expected_error_type=CallUnderWrappedError,
+        )
 
     def test_call_kwargs_badly_wrapped(self) -> None:
         self.assertError(

@@ -41,6 +41,22 @@ class UnderWrappedError:
 
 
 @dataclasses.dataclass(frozen=True)
+class CallUnderWrappedError:
+    node: ast.Call
+    conflicts: list[Position]
+
+    @property
+    def position(self) -> Position:
+        return self.conflicts[0]
+
+    def __str__(self) -> str:
+        return (
+            "BWR002 Call is wrapped with separated positional and keyword args - "
+            f"{len(self.conflicts)} elements on the same line"
+        )
+
+
+@dataclasses.dataclass(frozen=True)
 class OverWrappedError:
     node: ast.AST
     positions: list[Position]
@@ -216,7 +232,6 @@ class Visitor(ast.NodeVisitor):
     def visit_Call(self, node: ast.Call) -> None:
         open_paren = self.asttokens.find_token(_last_token(node.func), token.OP, '(')
 
-        # TODO: avoid re-computation of this below
         by_line_no = self._get_nodes_by_line_number(
             node,
             Position(*open_paren.end),
@@ -224,6 +239,7 @@ class Visitor(ast.NodeVisitor):
             include_node_end=True,
         )
 
+        has_error = False
         if len(by_line_no) > 1:
             kwargs_by_line_no = self._get_nodes_by_line_number(
                 node,
@@ -236,6 +252,7 @@ class Visitor(ast.NodeVisitor):
             kwargs_summary = self._summarise_lines(kwargs_by_line_no)
 
             if not kwargs_summary.is_single_column:
+                has_error = True
                 self._record_error(
                     node,
                     kwargs_by_line_no[kwargs_summary.most_common_line_number],
@@ -252,10 +269,27 @@ class Visitor(ast.NodeVisitor):
             pos_args_summary = self._summarise_lines(pos_args_by_line_no)
 
             if not pos_args_summary.is_single_line_or_column:
+                has_error = True
                 self._record_error(
                     node,
                     pos_args_by_line_no[pos_args_summary.most_common_line_number],
                 )
+
+            if not has_error:
+                # Check that overall there is no error. This allows us to emit
+                # CallUnderWrappedError for cases such as:
+                #
+                #    call(42,
+                #        kwarg='',
+                #    )
+                #
+                # which we want to allow users to allow if they want.
+                summary = self._summarise_lines(by_line_no)
+
+                if not summary.is_single_line_or_column:
+                    positions = get_start_positions(by_line_no[summary.most_common_line_number])
+                    assert positions
+                    self.errors.append(CallUnderWrappedError(node, positions))
 
         self.generic_visit(node)
 
