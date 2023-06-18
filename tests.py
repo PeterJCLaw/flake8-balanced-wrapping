@@ -402,6 +402,22 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             OverWrappedError,
         )
 
+    def test_unaryop_ok(self) -> None:
+        self.assertOk('''
+            ok = not foobar
+        ''')
+
+    def test_unaryop_bad_wrap(self) -> None:
+        self.assertError(
+            '''
+            bad = (not
+                   foobar)
+            ''',
+            (1, 7),
+            ast.UnaryOp,
+            OverWrappedError,
+        )
+
     def test_compare_ok(self) -> None:
         self.assertOk('''
             ok = 'foo' in 'foobar'

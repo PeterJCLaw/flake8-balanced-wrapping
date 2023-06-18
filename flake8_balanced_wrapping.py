@@ -406,6 +406,16 @@ class Visitor(ast.NodeVisitor):
                 error_type=OverWrappedError,
             )
 
+    def visit_UnaryOp(self, node: ast.UnaryOp) -> None:
+        if node.lineno != node.operand.lineno:
+            self._record_error(
+                node,
+                [node, node.operand],
+                error_type=OverWrappedError,
+            )
+
+        self.generic_visit(node)
+
     def visit_comprehension(self, node: ast.comprehension) -> None:
         self._check_over_wrapping(
             node,
