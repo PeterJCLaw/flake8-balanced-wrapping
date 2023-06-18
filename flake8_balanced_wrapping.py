@@ -52,7 +52,7 @@ class OverWrappedError:
     def __str__(self) -> str:
         lines = set(x.line for x in self.positions)
         return (
-            f"BWR002 {type(self.node).__name__} is wrapped unexpectedly over "
+            f"BWR010 {type(self.node).__name__} is wrapped unexpectedly over "
             f"{len(lines)} lines"
         )
 
