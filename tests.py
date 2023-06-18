@@ -118,6 +118,35 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             )
         ''')
 
+    def test_call_kwargs_wrapped(self) -> None:
+        self.assertOk('''
+            Item(42, 'slug',
+                display="Thing",
+                visible=False,
+            )
+        ''')
+
+    def test_call_kwargs_badly_wrapped(self) -> None:
+        self.assertError(
+            '''
+            Item(42, 'slug',
+                display="Thing", visible=False,
+            )
+            ''',
+            expected_error_position=(2, 4),
+            expected_error_type=ast.Call,
+        )
+
+    def test_call_kwargs_badly_wrapped_with_misplaced_end_paren(self) -> None:
+        self.assertError(
+            '''
+            Item(42, 'slug',
+                display="Thing", visible=False)
+            ''',
+            expected_error_position=(2, 4),
+            expected_error_type=ast.Call,
+        )
+
     def test_one_line_function_def(self) -> None:
         self.assertOk('''
             def func(on, one, *, line):
@@ -181,6 +210,28 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
                             server_hostname=self.host,
                             session=self.sock.session)
             ''',
+            (3, 16),
+            ast.Call,
+        )
+
+    def test_pep8_style_call_kwargs_only(self) -> None:
+        self.assertError(
+            '''
+            connection = wrap_socket(conn=connection,
+                            server_hostname=self.host,
+                            session=self.sock.session)
+            ''',
+            (1, 13),
+            ast.Call,
+        )
+
+    def test_pep8_style_call_positional_only(self) -> None:
+        self.assertError(
+            '''
+            connection = wrap_socket(connection,
+                            self.host,
+                            self.sock.session)
+            ''',
             (1, 13),
             ast.Call,
         )
@@ -201,11 +252,24 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             )})
         ''')
 
-    def test_misplaced_hugging_end_paren(self) -> None:
+    def test_misplaced_hugging_end_paren_positional(self) -> None:
         # TODO: make this error position better
         self.assertError(
             '''
-            foo('x', [
+            foo([
+                Bar,
+            ],
+            )
+            ''',
+            (1, 0),
+            ast.Call,
+        )
+
+    def test_misplaced_hugging_end_paren_kwarg(self) -> None:
+        # TODO: make this error position better
+        self.assertError(
+            '''
+            foo(x=[
                 Bar,
             ],
             )

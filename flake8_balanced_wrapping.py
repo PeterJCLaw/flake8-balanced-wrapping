@@ -58,8 +58,13 @@ class OverWrappedError:
 
 
 class PositionsSummary(NamedTuple):
-    is_single_line_or_column: bool
+    is_single_line: bool
+    is_single_column: bool
     most_common_line_number: int
+
+    @property
+    def is_single_line_or_column(self) -> bool:
+        return self.is_single_line or self.is_single_column
 
 
 def get_start_position(node: ast.AST) -> Position:
@@ -109,7 +114,7 @@ class Visitor(ast.NodeVisitor):
 
             # Allow hugging, but otherwise add the containing node via its end
             # line too.
-            if just_before_end_pos not in end_positions:
+            if just_before_end_pos not in end_positions or end_line in by_line_no:
                 by_line_no[end_line].append(node)
 
         return by_line_no
@@ -121,8 +126,9 @@ class Visitor(ast.NodeVisitor):
         counts = {x: len(y) for x, y in nodes_by_line_number.items()}
         (line_num, max_nodes_per_line), = collections.Counter(counts).most_common(1)
         return PositionsSummary(
-            len(counts) == 1 or max_nodes_per_line == 1,
-            line_num,
+            is_single_line=len(counts) == 1,
+            is_single_column=max_nodes_per_line == 1,
+            most_common_line_number=line_num,
         )
 
     def _record_error(
@@ -201,12 +207,48 @@ class Visitor(ast.NodeVisitor):
 
     def visit_Call(self, node: ast.Call) -> None:
         open_paren = self.asttokens.find_token(_last_token(node.func), token.OP, '(')
-        self._check_under_wrapping(
+
+        # TODO: avoid re-computation of this below
+        by_line_no = self._get_nodes_by_line_number(
             node,
             Position(*open_paren.end),
             [*node.args, *node.keywords],
             include_node_end=True,
         )
+
+        if len(by_line_no) > 1:
+            kwargs_by_line_no = self._get_nodes_by_line_number(
+                node,
+                Position(*open_paren.end),
+                node.keywords,
+                include_node_end=True,
+                include_node_start=not node.args,
+            )
+
+            kwargs_summary = self._summarise_lines(kwargs_by_line_no)
+
+            if not kwargs_summary.is_single_column:
+                self._record_error(
+                    node,
+                    kwargs_by_line_no[kwargs_summary.most_common_line_number],
+                )
+
+            pos_args_by_line_no = self._get_nodes_by_line_number(
+                node,
+                Position(*open_paren.end),
+                node.args,
+                include_node_end=not node.keywords,
+                include_node_start=True,
+            )
+
+            pos_args_summary = self._summarise_lines(pos_args_by_line_no)
+
+            if not pos_args_summary.is_single_line_or_column:
+                self._record_error(
+                    node,
+                    pos_args_by_line_no[pos_args_summary.most_common_line_number],
+                )
+
         self.generic_visit(node)
 
     def visit_Dict(self, node: ast.Dict) -> None:
