@@ -71,6 +71,15 @@ def get_start_position(node: ast.AST) -> Position:
     return Position.from_node_start(node)
 
 
+def get_start_positions(nodes: Iterable[ast.AST]) -> list[Position]:
+    positions = []
+    for node in nodes:
+        start = get_start_position(node)
+        if start is not None:
+            positions.append(start)
+    return positions
+
+
 def get_end_position(node: ast.AST) -> Position:
     return Position(*_last_token(node).end)
 
@@ -137,8 +146,7 @@ class Visitor(ast.NodeVisitor):
         nodes: list[ast.AST],
         error_type: type[UnderWrappedError] | type[OverWrappedError] = UnderWrappedError,
     ) -> None:
-        maybe_positions = [get_start_position(x) for x in nodes]
-        positions = [x for x in maybe_positions if x is not None]
+        positions = get_start_positions(nodes)
         assert positions
         self.errors.append(error_type(node, positions))
 
