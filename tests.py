@@ -323,7 +323,7 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             ]
         ''')
 
-    def test_if_expression_bad_wrap_body(self) -> None:
+    def test_if_expression_badly_positioned_body(self) -> None:
         # TODO: make this error position better
         self.assertError(
             '''
@@ -333,6 +333,18 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             )
             ''',
             (1, 5),
+            ast.IfExp,
+        )
+
+    def test_if_expression_bad_wrap_body(self) -> None:
+        # TODO: make this error position better
+        self.assertError(
+            '''
+            x = foo(
+                'something long'
+            ) if False else 'bar'
+            ''',
+            (3, 5),
             ast.IfExp,
         )
 
