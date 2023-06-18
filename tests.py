@@ -380,6 +380,13 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             )
         ''')
 
+    def test_if_expression_ok_unwrapped_parens(self) -> None:
+        self.assertOk('''
+            x = (
+                'foo' if False else 'bar'
+            )
+        ''')
+
     def test_if_expression_ok_wrapped_implicit_boundary(self) -> None:
         self.assertOk('''
             x = {

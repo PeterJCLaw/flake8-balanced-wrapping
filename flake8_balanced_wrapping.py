@@ -343,8 +343,12 @@ class Visitor(ast.NodeVisitor):
             open_paren = self.asttokens.prev_token(_first_token(node.body))
             close_paren = self.asttokens.next_token(_last_token(node.orelse))
 
-            by_line_no[open_paren.start[0]].append(node)
-            by_line_no[close_paren.start[0]].append(node)
+            open_line = open_paren.start[0]
+            close_line = close_paren.start[0]
+
+            if open_line in by_line_no or close_line in by_line_no:
+                by_line_no[open_line].append(node)
+                by_line_no[close_line].append(node)
 
         summary = self._summarise_lines(by_line_no)
 
