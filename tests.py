@@ -8,13 +8,14 @@ from unittest import mock
 import asttokens
 
 import flake8_balanced_wrapping
+from flake8_balanced_wrapping import Error, OverWrappedError, UnderWrappedError
 
 
 class TestFlake8BalancedWrapping(unittest.TestCase):
     def assertErrors(
         self,
         content: str,
-        expected_errors: list[tuple[type[ast.AST], tuple[int, int]]],
+        expected_errors: list[tuple[type[Error], type[ast.AST], tuple[int, int]]],
         *,
         message: str = "Wrong error locations",
     ) -> None:
@@ -25,7 +26,7 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             asttokens.ASTTokens(content, parse=True),
         )
         almost_errors = [
-            (type(x.node), (x.position.line, x.position.col))
+            (type(x), type(x.node), (x.position.line, x.position.col))
             for x in errors
         ]
 
@@ -35,13 +36,14 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
         self,
         content: str,
         expected_error_position: tuple[int, int],
-        expected_error_type: type[ast.AST] = mock.ANY,
+        expected_error_node: type[ast.AST] = mock.ANY,
+        expected_error_type: type[Error] = UnderWrappedError,
         *,
         message: str = "Wrong error locations",
     ) -> None:
         self.assertErrors(
             content,
-            [(expected_error_type, expected_error_position)],
+            [(expected_error_type, expected_error_node, expected_error_position)],
             message=message,
         )
 
@@ -134,7 +136,7 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             )
             ''',
             expected_error_position=(2, 4),
-            expected_error_type=ast.Call,
+            expected_error_node=ast.Call,
         )
 
     def test_call_kwargs_badly_wrapped_with_misplaced_end_paren(self) -> None:
@@ -144,7 +146,7 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
                 display="Thing", visible=False)
             ''',
             expected_error_position=(2, 4),
-            expected_error_type=ast.Call,
+            expected_error_node=ast.Call,
         )
 
     def test_one_line_function_def(self) -> None:
@@ -387,6 +389,7 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             ''',
             (3, 8),
             ast.comprehension,
+            OverWrappedError,
         )
 
     def test_compare_ok(self) -> None:
@@ -402,4 +405,5 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             ''',
             (1, 6),
             ast.Compare,
+            OverWrappedError,
         )
