@@ -418,6 +418,38 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             OverWrappedError,
         )
 
+    def test_boolop_ok(self) -> None:
+        self.assertOk('''
+            ok = foo and bar
+        ''')
+
+    def test_boolop_wrapped_a(self) -> None:
+        self.assertOk('''
+            ok = (
+                foo and
+                not bar
+            )
+        ''')
+
+    def test_boolop_wrapped_b(self) -> None:
+        self.assertOk('''
+            ok = (
+                foo
+                and not bar
+            )
+        ''')
+
+    def test_boolop_bad_wrap(self) -> None:
+        self.assertError(
+            '''
+            bad = (foo and
+                   foobar)
+            ''',
+            (1, 7),
+            ast.BoolOp,
+            OverWrappedError,
+        )
+
     def test_compare_ok(self) -> None:
         self.assertOk('''
             ok = 'foo' in 'foobar'

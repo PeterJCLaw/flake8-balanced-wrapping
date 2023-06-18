@@ -406,6 +406,43 @@ class Visitor(ast.NodeVisitor):
                 error_type=OverWrappedError,
             )
 
+    def visit_BoolOp(self, node: ast.BoolOp) -> None:
+        start_pos = Position.from_node_start(node)
+
+        by_line_no = self._get_nodes_by_line_number(
+            node,
+            start_pos,
+            node.values,
+            include_node_end=False,
+            include_node_start=False,
+        )
+
+        summary = self._summarise_lines(by_line_no)
+
+        if not summary.is_single_line_or_column:
+            self._record_error(
+                node,
+                [node, *node.values],
+                error_type=OverWrappedError,
+            )
+
+        elif expression_is_parenthesised(self.asttokens, node):
+            # Also account for the parens
+            first_token = self.asttokens.prev_token(_first_token(node))
+            last_token = self.asttokens.next_token(_last_token(node))
+
+            if first_token.start[0] in by_line_no or last_token.start[0] in by_line_no:
+                by_line_no[first_token.line].append(node)
+                by_line_no[last_token.line].append(node)
+
+                self._record_error(
+                    node,
+                    [node, *node.values],
+                    error_type=OverWrappedError,
+                )
+
+        self.generic_visit(node)
+
     def visit_UnaryOp(self, node: ast.UnaryOp) -> None:
         if node.lineno != node.operand.lineno:
             self._record_error(
