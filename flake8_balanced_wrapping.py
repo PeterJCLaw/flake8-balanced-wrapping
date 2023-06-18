@@ -328,11 +328,9 @@ class Visitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_IfExp(self, node: ast.IfExp) -> None:
-        start_pos = Position(*self.asttokens.prev_token(_first_token(node)).start)
-
         by_line_no = self._get_nodes_by_line_number(
             node,
-            start_pos,
+            Position.from_node_start(node.body),
             # TODO: when we get to column validation we're going to need a way
             # to represent syntax here not just AST nodes.
             [node.body, node.test, node.orelse],
@@ -342,9 +340,11 @@ class Visitor(ast.NodeVisitor):
 
         if expression_is_parenthesised(self.asttokens, node):
             # Also account for the parens
-            end_pos = Position(*self.asttokens.next_token(_last_token(node)).end)
-            by_line_no[start_pos.line].append(node)
-            by_line_no[end_pos.line].append(node)
+            open_paren = self.asttokens.prev_token(_first_token(node.body))
+            close_paren = self.asttokens.next_token(_last_token(node.orelse))
+
+            by_line_no[open_paren.start[0]].append(node)
+            by_line_no[close_paren.start[0]].append(node)
 
         summary = self._summarise_lines(by_line_no)
 
