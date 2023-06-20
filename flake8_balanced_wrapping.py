@@ -438,7 +438,10 @@ class Visitor(ast.NodeVisitor):
             open_line = open_paren.start[0]
             close_line = close_paren.start[0]
 
-            if open_line in by_line_no or close_line in by_line_no:
+            if (
+                open_line != close_line and
+                (open_line in by_line_no or close_line in by_line_no)
+            ):
                 by_line_no[open_line].append(node)
                 by_line_no[close_line].append(node)
 

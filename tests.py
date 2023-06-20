@@ -442,6 +442,12 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             ok = foo and bar
         ''')
 
+    def test_boolop_parenthesized(self) -> None:
+        # Kinda ugly on its own, but useful when e.g: negated
+        self.assertOk('''
+            ok = (foo and bar)
+        ''')
+
     def test_boolop_wrapped_a(self) -> None:
         self.assertOk('''
             ok = (
