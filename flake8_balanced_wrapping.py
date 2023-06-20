@@ -490,7 +490,7 @@ class Visitor(ast.NodeVisitor):
             node,
             Position.from_node_start(node.left),
             [node.left, *node.comparators],
-            include_node_end=True,
+            include_node_end=False,
             include_node_start=True,
         )
         self.generic_visit(node)
