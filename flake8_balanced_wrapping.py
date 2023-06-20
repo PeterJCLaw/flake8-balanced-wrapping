@@ -83,14 +83,21 @@ class PositionsSummary(NamedTuple):
         return self.is_single_line or self.is_single_column
 
 
-def get_start_position(node: ast.AST) -> Position:
+def get_start_position(asttokens: ASTTokens, node: ast.AST) -> Position:
+    if (
+        isinstance(node, (ast.BoolOp, ast.IfExp)) and
+        expression_is_parenthesised(asttokens, node)
+    ):
+        open_paren = asttokens.prev_token(_first_token(node))
+        return Position(*open_paren.start)
+
     return Position.from_node_start(node)
 
 
-def get_start_positions(nodes: Iterable[ast.AST]) -> list[Position]:
+def get_start_positions(asttokens: ASTTokens, nodes: Iterable[ast.AST]) -> list[Position]:
     positions = []
     for node in nodes:
-        start = get_start_position(node)
+        start = get_start_position(asttokens, node)
         if start is not None:
             positions.append(start)
     return positions
@@ -129,7 +136,7 @@ class Visitor(ast.NodeVisitor):
             by_line_no[reference.line].append(node)
 
         for x in nodes:
-            pos = get_start_position(x)
+            pos = get_start_position(self.asttokens, x)
             by_line_no[pos.line].append(x)
 
         if include_node_end:
@@ -162,7 +169,7 @@ class Visitor(ast.NodeVisitor):
         nodes: list[ast.AST],
         error_type: type[UnderWrappedError] | type[OverWrappedError] = UnderWrappedError,
     ) -> None:
-        positions = get_start_positions(nodes)
+        positions = get_start_positions(self.asttokens, nodes)
         assert positions
         self.errors.append(error_type(node, positions))
 
@@ -287,7 +294,10 @@ class Visitor(ast.NodeVisitor):
                 summary = self._summarise_lines(by_line_no)
 
                 if not summary.is_single_line_or_column:
-                    positions = get_start_positions(by_line_no[summary.most_common_line_number])
+                    positions = get_start_positions(
+                        self.asttokens,
+                        by_line_no[summary.most_common_line_number],
+                    )
                     assert positions
                     self.errors.append(CallUnderWrappedError(node, positions))
 
@@ -454,7 +464,9 @@ class Visitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_UnaryOp(self, node: ast.UnaryOp) -> None:
-        if node.lineno != node.operand.lineno:
+        operand_start = get_start_position(self.asttokens, node.operand)
+
+        if node.lineno != operand_start.line:
             self._record_error(
                 node,
                 [node, node.operand],

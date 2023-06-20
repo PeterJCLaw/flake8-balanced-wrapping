@@ -431,6 +431,13 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             ok = (not foobar)
         ''')
 
+    def test_unaryop_argument_wrapped(self) -> None:
+        self.assertOk('''
+            ok = not (
+                foo and bar
+            )
+        ''')
+
     def test_unaryop_bad_wrap(self) -> None:
         self.assertError(
             '''
@@ -451,6 +458,13 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
         # Kinda ugly on its own, but useful when e.g: negated
         self.assertOk('''
             ok = (foo and bar)
+        ''')
+
+    def test_boolop_unwrapped_parens(self) -> None:
+        self.assertOk('''
+            ok = (
+                foo and bar
+            )
         ''')
 
     def test_boolop_wrapped_a(self) -> None:
@@ -475,7 +489,7 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             bad = (foo and
                    foobar)
             ''',
-            (1, 7),
+            (1, 6),
             ast.BoolOp,
             OverWrappedError,
         )
