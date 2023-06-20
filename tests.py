@@ -426,6 +426,11 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             ok = not foobar
         ''')
 
+    def test_unaryop_parens(self) -> None:
+        self.assertOk('''
+            ok = (not foobar)
+        ''')
+
     def test_unaryop_bad_wrap(self) -> None:
         self.assertError(
             '''
