@@ -436,8 +436,8 @@ class Visitor(ast.NodeVisitor):
             last_token = self.asttokens.next_token(_last_token(node))
 
             if first_token.start[0] in by_line_no or last_token.start[0] in by_line_no:
-                by_line_no[first_token.line].append(node)
-                by_line_no[last_token.line].append(node)
+                by_line_no[first_token.start[0]].append(node)
+                by_line_no[last_token.start[0]].append(node)
 
                 self._record_error(
                     node,
