@@ -106,6 +106,13 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             )
         ''')
 
+    def test_call_second_arg_is_wrapped_generator(self) -> None:
+        self.assertOk('''
+            call(foo, (
+                x for x in 'abcd'
+            ))
+        ''')
+
     def test_call_arg_is_two_line_generator(self) -> None:
         self.assertOk('''
             call(

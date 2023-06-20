@@ -12,7 +12,7 @@ from typing_extensions import Protocol
 
 from tuck.ast import Position, _last_token, _first_token
 from asttokens import ASTTokens
-from tuck.wrappers import expression_is_parenthesised
+from tuck.wrappers import get_node_bounds, expression_is_parenthesised
 
 
 class Error(Protocol):
@@ -84,6 +84,11 @@ class PositionsSummary(NamedTuple):
 
 
 def get_start_position(asttokens: ASTTokens, node: ast.AST) -> Position:
+    if isinstance(node, ast.GeneratorExp):
+        first_token, last_token = get_node_bounds(asttokens, node)
+        if first_token.string == '(' and last_token.string == ')':
+            return Position(*first_token.start)
+
     if (
         isinstance(node, (ast.BoolOp, ast.IfExp)) and
         expression_is_parenthesised(asttokens, node)
@@ -103,14 +108,19 @@ def get_start_positions(asttokens: ASTTokens, nodes: Iterable[ast.AST]) -> list[
     return positions
 
 
-def get_end_position(node: ast.AST) -> Position:
+def get_end_position(asttokens: ASTTokens, node: ast.AST) -> Position:
+    if isinstance(node, ast.GeneratorExp):
+        first_token, last_token = get_node_bounds(asttokens, node)
+        if first_token.string == '(' and last_token.string == ')':
+            return Position(*last_token.end)
+
     return Position(*_last_token(node).end)
 
 
-def get_end_positions(nodes: Iterable[ast.AST]) -> list[Position]:
+def get_end_positions(asttokens: ASTTokens, nodes: Iterable[ast.AST]) -> list[Position]:
     positions = []
     for node in nodes:
-        end = get_end_position(node)
+        end = get_end_position(asttokens, node)
         if end is not None:
             positions.append(end)
     return positions
@@ -142,7 +152,7 @@ class Visitor(ast.NodeVisitor):
         if include_node_end:
             end_line, end_col = _last_token(node).end
             just_before_end_pos = Position(end_line, end_col - 1)
-            end_positions = get_end_positions(nodes)
+            end_positions = get_end_positions(self.asttokens, nodes)
 
             # Allow hugging, but otherwise add the containing node via its end
             # line too.
