@@ -432,12 +432,15 @@ class Visitor(ast.NodeVisitor):
 
         elif expression_is_parenthesised(self.asttokens, node):
             # Also account for the parens
-            first_token = self.asttokens.prev_token(_first_token(node))
-            last_token = self.asttokens.next_token(_last_token(node))
+            open_paren = self.asttokens.prev_token(_first_token(node))
+            close_paren = self.asttokens.next_token(_last_token(node))
 
-            if first_token.start[0] in by_line_no or last_token.start[0] in by_line_no:
-                by_line_no[first_token.start[0]].append(node)
-                by_line_no[last_token.start[0]].append(node)
+            open_line = open_paren.start[0]
+            close_line = close_paren.start[0]
+
+            if open_line in by_line_no or close_line in by_line_no:
+                by_line_no[open_line].append(node)
+                by_line_no[close_line].append(node)
 
                 self._record_error(
                     node,
