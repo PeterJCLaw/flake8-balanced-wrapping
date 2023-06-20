@@ -340,8 +340,8 @@ class Visitor(ast.NodeVisitor):
 
         if expression_is_parenthesised(self.asttokens, node):
             # Also account for the parens
-            open_paren = self.asttokens.prev_token(_first_token(node.body))
-            close_paren = self.asttokens.next_token(_last_token(node.orelse))
+            open_paren = self.asttokens.prev_token(_first_token(node))
+            close_paren = self.asttokens.next_token(_last_token(node))
 
             open_line = open_paren.start[0]
             close_line = close_paren.start[0]
