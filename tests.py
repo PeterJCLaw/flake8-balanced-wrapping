@@ -499,6 +499,13 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             ok = 'foo' in 'foobar'
         ''')
 
+    def test_compare_unwrapped_parens(self) -> None:
+        self.assertOk('''
+            ok = (
+                'foo' in 'foobar'
+            )
+        ''')
+
     def test_compare_argument_wrapped(self) -> None:
         self.assertOk('''
             ok = method in (
