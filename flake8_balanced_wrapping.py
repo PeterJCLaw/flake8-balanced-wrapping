@@ -190,7 +190,7 @@ class Visitor(ast.NodeVisitor):
         nodes: Collection[ast.AST],
         include_node_end: bool,
         include_node_start: bool = True,
-    ) -> None:
+    ) -> PositionsSummary:
         by_line_no = self._get_nodes_by_line_number(
             node,
             reference,
@@ -203,6 +203,8 @@ class Visitor(ast.NodeVisitor):
 
         if not summary.is_single_line_or_column:
             self._record_error(node, by_line_no[summary.most_common_line_number])
+
+        return summary
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         nodes = [*node.bases, *node.keywords]
@@ -404,6 +406,49 @@ class Visitor(ast.NodeVisitor):
             include_node_end=is_parenthesised,
             include_node_start=is_parenthesised,
         )
+
+        self.generic_visit(node)
+
+    def visit_comp(self, node: ast.ListComp | ast.SetComp) -> None:
+        summary = self._check_under_wrapping(
+            node,
+            Position.from_node_start(node),
+            [node.elt, *node.generators, *itertools.chain.from_iterable(x.ifs for x in node.generators)],
+            include_node_start=False,
+            include_node_end=False,
+        )
+
+        if not summary.is_single_line:
+            # Ensure that the element from the comprehension is fully on its own
+            # line and not overlapping with the generators.
+            elt_end = Position.from_node_end(node.elt)
+            generator = node.generators[0]
+            generator_start = Position.from_node_start(generator)
+            if elt_end.line == generator_start.line:
+                self._record_error(node, [node.elt, generator])
+
+        self.generic_visit(node)
+
+    visit_ListComp = visit_comp
+    visit_SetComp = visit_comp
+
+    def visit_DictComp(self, node: ast.DictComp) -> None:
+        summary = self._check_under_wrapping(
+            node,
+            Position.from_node_start(node),
+            [node.key, *node.generators, *itertools.chain.from_iterable(x.ifs for x in node.generators)],
+            include_node_start=False,
+            include_node_end=False,
+        )
+
+        if not summary.is_single_line:
+            # Ensure that the `key: value` from the comprehension is fully on
+            # its own line and not overlapping with the generators.
+            value_end = Position.from_node_end(node.value)
+            generator = node.generators[0]
+            generator_start = Position.from_node_start(generator)
+            if value_end.line == generator_start.line:
+                self._record_error(node, [node.value, generator])
 
         self.generic_visit(node)
 

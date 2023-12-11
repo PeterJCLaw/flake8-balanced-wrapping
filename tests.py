@@ -414,7 +414,19 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             ]
         ''')
 
-    def test_comprehension_bad_wrap(self) -> None:
+    def test_comprehension_ok_single_line(self) -> None:
+        self.assertOk('''
+            ok = [x for x in valid_call(foo='Bar')]
+        ''')
+
+    def test_comprehension_ok_three_line(self) -> None:
+        self.assertOk('''
+            ok = [
+                x for x in valid_call(foo='Bar')
+            ]
+        ''')
+
+    def test_comprehension_over_wrapped_for(self) -> None:
         self.assertError(
             '''
             bad = [
@@ -426,6 +438,49 @@ class TestFlake8BalancedWrapping(unittest.TestCase):
             (3, 8),
             ast.comprehension,
             OverWrappedError,
+        )
+
+    def test_list_comprehension_under_wrapped_conditional(self) -> None:
+        self.assertError(
+            '''
+            bad = [
+                x
+                for x in "SOMETHING" if x
+            ]
+            ''',
+            (3, 4),
+            ast.ListComp,
+            UnderWrappedError,
+        )
+
+    def test_list_comprehension_under_wrapped_loop_variable_wrapped(self) -> None:
+        # Should have a newline before the "for"
+        self.assertError(
+            '''
+            bad = [
+                something(
+                    x,
+                ) for x in "SOMETHING"
+            ]
+            ''',
+            (2, 4),
+            ast.ListComp,
+            UnderWrappedError,
+        )
+
+    def test_dict_comprehension_under_wrapped_loop_variable_wrapped(self) -> None:
+        # Should have a newline before the "for"
+        self.assertError(
+            '''
+            bad = {
+                x: something(
+                    x,
+                ) for x in "SOMETHING"
+            }
+            ''',
+            (2, 7),
+            ast.DictComp,
+            UnderWrappedError,
         )
 
     def test_unaryop_ok(self) -> None:
